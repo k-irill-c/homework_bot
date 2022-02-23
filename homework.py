@@ -135,6 +135,7 @@ def main():
                 send_message(BOT, parse_status(homework))
                 logger.info(f'Статус не обновлен {homework}')
             current_timestamp = response.get('current_date', current_timestamp)
+            return response['homeworks']
         except Exception as error:
             message = f'Сбой в работе программы: {error}'
             logger.error(message)
