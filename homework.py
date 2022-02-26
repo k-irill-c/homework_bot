@@ -13,7 +13,6 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-
 PRACTICUM_TOKEN = os.getenv('TOKEN_PRACTICUM')
 TELEGRAM_TOKEN = os.getenv('TOKEN_TELEGRAM')
 TELEGRAM_CHAT_ID = os.getenv('CHAT_ID_TELEGRAM')
@@ -24,13 +23,11 @@ RETRY_TIME = 600
 ENDPOINT = 'https://practicum.yandex.ru/api/user_api/homework_statuses/'
 HEADERS = {'Authorization': f'OAuth {PRACTICUM_TOKEN}'}
 
-
 HOMEWORK_STATUSES = {
     'reviewing': 'Работа взята на проверку ревьюером.',
     'rejected': 'Работа проверена: у ревьюера есть замечания.',
     'approved': 'Работа проверена: ревьюеру всё понравилось. Ура!',
 }
-
 
 logging.basicConfig(
     level=logging.INFO,
@@ -63,16 +60,17 @@ def get_api_answer(current_timestamp):
     params = {'from_date': timestamp}
     try:
         response = requests.get(ENDPOINT, headers=HEADERS, params=params)
+        logger.info(f'[Запрос к API] Статуc: {response.status_code}')
         if response.status_code != HTTPStatus.OK.value:
             logger.error(
-                f'Ошибочка запроса к эндпоинту API-сервиса.'
+                f'Ошибочка! запроса к эндпоинту API-сервиса.'
                 f'Статус ответа сервера {response.status_code}'
             )
             raise Exception(response.status_code)
         return response.json()
     except Exception:
         logger.error(
-            'Ошибочка запроса к эндпоинту API-сервиса.'
+            'Ошибочка Ex запроса к эндпоинту API-сервиса.'
         )
         raise Exception(response.status_code)
 
@@ -91,16 +89,23 @@ def check_response(response):
 
 def parse_status(homework):
     """Изменение информации о проверке работы."""
-    homework_name = homework['homework_name']
-    homework_status = homework['status']
-    message = 'Статус отсутсвует'
-    if homework_status not in HOMEWORK_STATUSES:
+    message = f'[Статус] Проект не в обработке: {homework}'
+    if homework != []:
+        homework_name = homework['homework_name']
+        homework_status = homework['status']
+        if homework_status in HOMEWORK_STATUSES:
+            verdict = HOMEWORK_STATUSES[homework_status]
+            mes_verdict = (
+                f'Изменился статус проверки работы "{homework_name}". '
+                f'{verdict}'
+            )
+            send_message(BOT, mes_verdict)
+            logger.info(mes_verdict)
+            return mes_verdict
+        raise KeyError(message)
+    else:
         logger.error(message)
         raise KeyError(message)
-    verdict = HOMEWORK_STATUSES[homework_status]
-    if homework_status in HOMEWORK_STATUSES:
-        return f'Изменился статус проверки работы "{homework_name}". {verdict}'
-    raise KeyError(message)
 
 
 def check_tokens():
@@ -131,11 +136,7 @@ def main():
         try:
             response = get_api_answer(current_timestamp)
             homeworks = check_response(response)
-            for homework in homeworks:
-                send_message(BOT, parse_status(homework))
-                logger.info(f'Статус не обновлен {homework}')
-            current_timestamp = response.get('current_date', current_timestamp)
-            return response['homeworks']
+            parse_status(homeworks[0])
         except Exception as error:
             message = f'Сбой в работе программы: {error}'
             logger.error(message)
