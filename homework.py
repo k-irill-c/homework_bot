@@ -76,15 +76,17 @@ def get_api_answer(current_timestamp):
 
 
 def check_response(response):
-    """Проверка ответа API на корректность."""
+    """Проверяет ответ API на корректность."""
     try:
         homeworks = response['homeworks']
-    except KeyError:
-        raise KeyError('Ошибка ключа')
+    except KeyError as error:
+        raise KeyError(f'{error} ошибка ключа')
+    if not homeworks:
+        logger.debug('Статус работы прежний')
     if not isinstance(homeworks, list):
-        logger.error('Ошибка в списке работ.')
-        raise TypeError('Ошибка в списке работ.')
-    return response.get('homeworks')
+        logger.error('Ошибка типа в списке работ.')
+        raise TypeError('Ошибка типа.')
+    return homeworks
 
 
 def parse_status(homework):
