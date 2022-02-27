@@ -101,7 +101,7 @@ def parse_status(homework):
                 f'Изменился статус проверки работы "{homework_name}". '
                 f'{verdict}'
             )
-            send_message(BOT, mes_verdict)
+            # send_message(BOT, mes_verdict)
             logger.info(mes_verdict)
             return mes_verdict
         raise KeyError(message)
@@ -124,7 +124,7 @@ def check_tokens():
                     f'Отсутствует переменная окружения: {value} для {key}'
                 )
                 return False
-        return True
+        return tokens
     except NameError:
         message = 'Ошибка доступности переменной. Остановка программы'
         logger.critical(message)
