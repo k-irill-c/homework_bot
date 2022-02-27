@@ -119,7 +119,7 @@ def check_tokens():
             'CHAT_ID_TELEGRAM': TELEGRAM_CHAT_ID,
         }
         for key, value in tokens.items():
-            if not value:
+            if value is None:
                 logger.critical(
                     f'Отсутствует переменная окружения: {value} для {key}'
                 )
@@ -138,6 +138,7 @@ def main():
         try:
             response = get_api_answer(current_timestamp)
             homeworks = check_response(response)
+            check_tokens()
             if homeworks != []:
                 parse_status(homeworks[0])
             else:
