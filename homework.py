@@ -84,7 +84,7 @@ def check_response(response):
     if not isinstance(homeworks, list):
         logger.error('Ошибка в списке работ.')
         raise TypeError('Ошибка в списке работ.')
-    return homeworks
+    return response.get('homeworks')
 
 
 def parse_status(homework):
