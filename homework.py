@@ -136,7 +136,10 @@ def main():
         try:
             response = get_api_answer(current_timestamp)
             homeworks = check_response(response)
-            parse_status(homeworks[0])
+            if homeworks != []:
+                parse_status(homeworks[0])
+            else:
+                parse_status(homeworks)
         except Exception as error:
             message = f'Сбой в работе программы: {error}'
             logger.error(message)
