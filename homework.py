@@ -13,9 +13,9 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-PRACTICUM_TOKEN = os.getenv('TOKEN_PRACTICUM')
-TELEGRAM_TOKEN = os.getenv('TOKEN_TELEGRAM')
-TELEGRAM_CHAT_ID = os.getenv('CHAT_ID_TELEGRAM')
+PRACTICUM_TOKEN = os.getenv('PRACTICUM_TOKEN')
+TELEGRAM_TOKEN = os.getenv('TELEGRAM_TOKEN')
+TELEGRAM_CHAT_ID = os.getenv('TELEGRAM_CHAT_ID')
 
 BOT = telegram.Bot(token=TELEGRAM_TOKEN)
 
@@ -101,7 +101,6 @@ def parse_status(homework):
                 f'Изменился статус проверки работы "{homework_name}". '
                 f'{verdict}'
             )
-            # send_message(BOT, mes_verdict)
             logger.info(mes_verdict)
             return mes_verdict
         raise KeyError(message)
@@ -124,7 +123,7 @@ def check_tokens():
                     f'Отсутствует переменная окружения: {value} для {key}'
                 )
                 return False
-        return tokens
+        return True
     except NameError:
         message = 'Ошибка доступности переменной. Остановка программы'
         logger.critical(message)
@@ -134,7 +133,6 @@ def check_tokens():
 def main():
     """Основная логика работы бота."""
     current_timestamp = int(time.time())
-    bot = telegram.Bot(token=TELEGRAM_TOKEN)
     while True:
         try:
             response = get_api_answer(current_timestamp)
@@ -147,7 +145,7 @@ def main():
         except Exception as error:
             message = f'Сбой в работе программы: {error}'
             logger.error(message)
-            send_message(bot, message)
+            send_message(BOT, message)
         finally:
             time.sleep(RETRY_TIME)
 
