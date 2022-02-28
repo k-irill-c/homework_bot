@@ -99,7 +99,7 @@ def parse_status(homework):
                     f'Изменился статус проверки работы "{homework_name}". '
                     f'{verdict}'
                 )
-                # logger.info(mes_verdict)
+                logger.info(mes_verdict)
                 return mes_verdict
             raise KeyError('[Статус] Ошибка ключа')
         else:
