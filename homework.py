@@ -101,6 +101,7 @@ def parse_status(homework):
                 f'Изменился статус проверки работы "{homework_name}". '
                 f'{verdict}'
             )
+            send_message(BOT, mes_verdict)
             logger.info(mes_verdict)
             return mes_verdict
         raise KeyError(message)
@@ -113,9 +114,9 @@ def check_tokens():
     """Проверка доступности переменных окружения."""
     try:
         tokens = {
-            'TOKEN_PRACTICUM': PRACTICUM_TOKEN,
-            'TOKEN_TELEGRAM': TELEGRAM_TOKEN,
-            'CHAT_ID_TELEGRAM': TELEGRAM_CHAT_ID,
+            'PRACTICUM_TOKEN': PRACTICUM_TOKEN,
+            'TELEGRAM_TOKEN': TELEGRAM_TOKEN,
+            'TELEGRAM_CHAT_ID': TELEGRAM_CHAT_ID,
         }
         for key, value in tokens.items():
             if value is None:
