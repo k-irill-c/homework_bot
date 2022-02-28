@@ -17,8 +17,6 @@ PRACTICUM_TOKEN = os.getenv('PRACTICUM_TOKEN')
 TELEGRAM_TOKEN = os.getenv('TELEGRAM_TOKEN')
 TELEGRAM_CHAT_ID = os.getenv('TELEGRAM_CHAT_ID')
 
-BOT = telegram.Bot(token=TELEGRAM_TOKEN)
-
 RETRY_TIME = 600
 ENDPOINT = 'https://practicum.yandex.ru/api/user_api/homework_statuses/'
 HEADERS = {'Authorization': f'OAuth {PRACTICUM_TOKEN}'}
@@ -70,7 +68,7 @@ def get_api_answer(current_timestamp):
         return response.json()
     except Exception:
         logger.error(
-            'Ошибочка Ex запроса к эндпоинту API-сервиса.'
+            '[Запрос к API] Ошибочка Ex запроса к эндпоинту API-сервиса.'
         )
         raise Exception(response.status_code)
 
@@ -80,34 +78,37 @@ def check_response(response):
     try:
         homeworks = response['homeworks']
     except KeyError as error:
-        raise KeyError(f'{error} ошибка ключа')
+        raise KeyError(f'[Корректность] ошибка ключа: {error}')
     if not homeworks:
-        logger.debug('Статус работы прежний')
+        logger.debug('[Корректность] Статус работы прежний')
     if not isinstance(homeworks, list):
-        logger.error('Ошибка типа в списке работ.')
-        raise TypeError('Ошибка типа.')
+        logger.error('[Корректность] Ошибка типа в списке работ.')
+        raise TypeError('[Корректность] Ошибка типа.')
     return homeworks
 
 
 def parse_status(homework):
     """Изменение информации о проверке работы."""
-    message = f'[Статус] Проект не в обработке: {homework}'
-    if homework != []:
-        homework_name = homework['homework_name']
-        homework_status = homework['status']
-        if homework_status in HOMEWORK_STATUSES:
-            verdict = HOMEWORK_STATUSES[homework_status]
-            mes_verdict = (
-                f'Изменился статус проверки работы "{homework_name}". '
-                f'{verdict}'
-            )
-            send_message(BOT, mes_verdict)
-            logger.info(mes_verdict)
-            return mes_verdict
-        raise KeyError(message)
-    else:
-        logger.error(message)
-        raise KeyError(message)
+    try:
+        if homework != []:
+            homework_name = homework['homework_name']
+            homework_status = homework['status']
+            if homework_status in HOMEWORK_STATUSES:
+                verdict = HOMEWORK_STATUSES[homework_status]
+                mes_verdict = (
+                    f'Изменился статус проверки работы "{homework_name}". '
+                    f'{verdict}'
+                )
+                # logger.info(mes_verdict)
+                return mes_verdict
+            raise KeyError('[Статус] Ошибка ключа')
+        else:
+            message = f'[Статус] Проект не в обработке: {homework}'
+            logger.info(message)
+            return message
+    except KeyError:
+        logger.error('[Статус] Хьюстон, у нас проблем-с.')
+        raise KeyError('[Статус] ERROR: Ошибка ключа')
 
 
 def check_tokens():
@@ -119,7 +120,7 @@ def check_tokens():
             'TELEGRAM_CHAT_ID': TELEGRAM_CHAT_ID,
         }
         for key, value in tokens.items():
-            if value is None:
+            if not value:
                 logger.critical(
                     f'Отсутствует переменная окружения: {value} для {key}'
                 )
@@ -128,17 +129,16 @@ def check_tokens():
     except NameError:
         message = 'Ошибка доступности переменной. Остановка программы'
         logger.critical(message)
-        send_message(BOT, message)
 
 
 def main():
     """Основная логика работы бота."""
+    bot = telegram.Bot(token=TELEGRAM_TOKEN)
     current_timestamp = int(time.time())
     while True:
         try:
             response = get_api_answer(current_timestamp)
             homeworks = check_response(response)
-            check_tokens()
             if homeworks != []:
                 parse_status(homeworks[0])
             else:
@@ -146,7 +146,7 @@ def main():
         except Exception as error:
             message = f'Сбой в работе программы: {error}'
             logger.error(message)
-            send_message(BOT, message)
+            send_message(bot, message)
         finally:
             time.sleep(RETRY_TIME)
 
