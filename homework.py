@@ -10,6 +10,7 @@ from logging.handlers import RotatingFileHandler
 import requests
 import telegram
 from dotenv import load_dotenv
+from json.decoder import JSONDecodeError
 
 load_dotenv()
 
@@ -35,9 +36,15 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 handler = logging.StreamHandler(sys.stdout)
 rotating_handler = RotatingFileHandler(
-    'my_logger.log', maxBytes=50000000, backupCount=5
+    'bot_yandex_logger.log', maxBytes=50000000, backupCount=5
 )
 logger.addHandler(rotating_handler)
+
+
+class ErrorM(Exception):
+    """Собственное исключение."""
+
+    pass
 
 
 def send_message(bot, message):
@@ -48,7 +55,7 @@ def send_message(bot, message):
             text=message
         )
         logger.info(f'Отправлено сообщение: {message}')
-    except Exception:
+    except telegram.TelegramError:
         logger.error(f'Ошибка отправления сообщения: {message}')
 
 
@@ -61,16 +68,27 @@ def get_api_answer(current_timestamp):
         logger.info(f'[Запрос к API] Статуc: {response.status_code}')
         if response.status_code != HTTPStatus.OK.value:
             logger.error(
-                f'Ошибочка! запроса к эндпоинту API-сервиса.'
+                f'[Запрос к API] Ошибочка! запроса к эндпоинту API-сервиса.'
                 f'Статус ответа сервера {response.status_code}'
             )
-            raise Exception(response.status_code)
+            raise ErrorM(
+                f'[Запрос к API] Статус, отличный от 200: '
+                f'{response.status_code}'
+            )
         return response.json()
-    except Exception:
-        logger.error(
-            '[Запрос к API] Ошибочка Ex запроса к эндпоинту API-сервиса.'
+    except JSONDecodeError:
+        logger.error('Запрос к API вернулся не в формате JSON')
+        raise JSONDecodeError(
+            'Запрос к API вернулся не в формате JSON'
         )
-        raise Exception(response.status_code)
+    except requests.exceptions.HTTPError as err:
+        logger.error(
+            f'[Запрос к API] Ошибочка Ex запроса к эндпоинту API-сервиса:{err}'
+        )
+        raise requests.exceptions.HTTPError(
+            f'[Запрос к API] Статус: {response.status_code},'
+            f'Ошибка: {err}'
+        )
 
 
 def check_response(response):
@@ -90,7 +108,11 @@ def check_response(response):
 def parse_status(homework):
     """Изменение информации о проверке работы."""
     try:
-        if homework != []:
+        if len(homework) == 0:
+            message = f'[Статус] Проект не в обработке: {homework}'
+            logger.info(message)
+            return message
+        else:
             homework_name = homework['homework_name']
             homework_status = homework['status']
             if homework_status in HOMEWORK_STATUSES:
@@ -102,10 +124,6 @@ def parse_status(homework):
                 logger.info(mes_verdict)
                 return mes_verdict
             raise KeyError('[Статус] Ошибка ключа')
-        else:
-            message = f'[Статус] Проект не в обработке: {homework}'
-            logger.info(message)
-            return message
     except KeyError:
         logger.error('[Статус] Хьюстон, у нас проблем-с.')
         raise KeyError('[Статус] ERROR: Ошибка ключа')
@@ -139,10 +157,15 @@ def main():
         try:
             response = get_api_answer(current_timestamp)
             homeworks = check_response(response)
-            if homeworks != []:
-                parse_status(homeworks[0])
-            else:
+            if len(homeworks) == 0:
                 parse_status(homeworks)
+                send_message(bot, f'Работа не в обработке: {homeworks}')
+                send_message(bot, int(time.time()))
+            else:
+                if homeworks[0]['status'] in HOMEWORK_STATUSES:
+                    status = homeworks[0]['status']
+                    parse_status(homeworks[0])
+                    send_message(bot, HOMEWORK_STATUSES[status])
         except Exception as error:
             message = f'Сбой в работе программы: {error}'
             logger.error(message)
