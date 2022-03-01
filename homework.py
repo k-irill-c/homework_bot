@@ -160,7 +160,6 @@ def main():
             if len(homeworks) == 0:
                 parse_status(homeworks)
                 send_message(bot, f'Работа не в обработке: {homeworks}')
-                send_message(bot, int(time.time()))
             else:
                 if homeworks[0]['status'] in HOMEWORK_STATUSES:
                     status = homeworks[0]['status']
